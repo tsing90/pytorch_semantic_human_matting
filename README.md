@@ -2,30 +2,36 @@
 This is an unofficial implementation of the paper "Semantic human matting". 
 
 # testing environment:
-Ubuntu 16.04 \n
+Ubuntu 16.04
+
 Pytorch 0.4.1
 
+# data preparation
+For my code, there are two types of data:
+1. RGBA-png format: which means the image has no background (removed already)
+2. composited image + mask (alpha) image: the composited images have been composited by foreground and background already, and corresponding alpha matting images are also provided.
 
-# pre_trian T_net
+For example: 
+For 1: I used Adobe Deep Image Matting datasets; I composite alpha and foreground images togher to get my RGBA-png format images.
+For 2: I used Supervisely Human datasets which provides human involved images and corresponding masks; due to its low quality (binary segmentation), I mainly used them to trian T-net only;
+
+When having those above two types of data, then generate training file lists containing the path of training images, such as 'DIM_list.txt', 'super_img.txt'&'super_msk.txt' in my case.
+
+# How to run the code
+## pre_trian T_net
 python train.py --patch_size=400 --nEpochs=500 --save_epoch=5 --train_batch=8 --train_phase=pre_train_t_net
 
 optional: --continue_train
 
-# pre_train M_net
+## pre_train M_net
 python train.py --patch_size=400 --nEpochs=500 --save_epoch=1 --train_batch=8 --train_phase=pre_train_m_net
 
 optional: --continue_train
 
-# end to end
-python train.py
---patch_size=800
---nEpochs=500
---lr=1e-5
---save_epoch=10
---train_batch=8
---continue_train
---train_phase=end_to_end
+## end to end training
+python train.py --patch_size=800 --nEpochs=500 --lr=1e-5 --save_epoch=10 --train_batch=8 --continue_train --train_phase=end_to_end
 
+optional: --continue_train
 
-# testing
+## testing
 python test.py --train_phase=end_to_end
