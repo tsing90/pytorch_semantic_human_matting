@@ -12,10 +12,12 @@ For my code, there are two types of data:
 2. composited image + mask (alpha) image: the composited images have been composited by foreground and background already, and corresponding alpha matting images are also provided.
 
 For example: 
+
 For 1: I used Adobe Deep Image Matting datasets; I composite alpha and foreground images togher to get my RGBA-png format images.
+
 For 2: I used Supervisely Human datasets which provides human involved images and corresponding masks; due to its low quality (binary segmentation), I mainly used them to trian T-net only;
 
-When having those above two types of data, then generate training file lists containing the path of training images, such as 'DIM_list.txt', 'super_img.txt'&'super_msk.txt' in my case.
+-When having those above two types of data, then generate training file lists containing the path of training images, such as 'DIM_list.txt', 'super_img.txt'&'super_msk.txt' in my case.
 
 # How to run the code
 ## pre_trian T_net
