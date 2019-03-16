@@ -27,7 +27,7 @@ The training model is completely implemented as described as in the paper, detai
 
 * Fusion: the fusion loss functions are implemented as described in paper;
 
-* **_This model is flexible for inferencing any size of images when well trained.**
+* **_This model is flexible for inferencing any size of images when well trained._**
 
 # How to run the code
 ## pre_trian T_net
