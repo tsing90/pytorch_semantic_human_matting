@@ -35,3 +35,7 @@ optional: --continue_train
 
 ## testing
 python test.py --train_phase=end_to_end
+
+# Results
+** will be released soon ... **
+-------------------------------
