@@ -19,6 +19,16 @@ For 2: I used Supervisely Human datasets which provides human involved images an
 
 -When having those above two types of data, then generate training file lists containing the path of training images, such as 'DIM_list.txt', 'super_img.txt'&'super_msk.txt' in my case.
 
+# Implementation details
+The training model is completely implemented as described as in the paper, details are as follows:
+* T-net: PSP-50 is deployed for training trimap generation; input is image (3 channels) and output is trimap (one channel);
+
+* M-net: 13 convolutional layers and 4 max-pooling layers with the same hyper-parameters for VGG-16 are used as encoder, and 6 convolutional layers and 4 unpooling layers are used as decoder; input is image and trimap (6 channels) and output is alpha image (1 channel);
+
+* Fusion: the fusion loss functions are implemented as described in paper;
+
+* **This model is flexible for inferencing any size of images when well trained.
+
 # How to run the code
 ## pre_trian T_net
 python train.py --patch_size=400 --nEpochs=500 --save_epoch=5 --train_batch=8 --train_phase=pre_train_t_net
