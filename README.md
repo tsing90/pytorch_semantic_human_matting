@@ -10,6 +10,7 @@ Pytorch 0.4.1
 For my code, there are two types of data:
 1. RGBA-png format: which means the image has no background (removed already)
 2. composited image + mask (alpha) image: the composited images have been composited by foreground and background already, and corresponding alpha matting images are also provided.
+3. backround images: which can fetched from coco datasets or anywhere else (e.g. internet), and they will be used for randomly compositing new image on-the-fly with foreground images separated from 1 (RGBA-PNG images), as described in paper.
 
 For example: 
 
@@ -17,7 +18,9 @@ For 1: I used Adobe Deep Image Matting datasets; I composite alpha and foregroun
 
 For 2: I used Supervisely Human datasets which provides human involved images and corresponding masks; due to its low quality (binary segmentation), I mainly used them to trian T-net only;
 
--When having those above two types of data, then generate training file lists containing the path of training images, such as 'DIM_list.txt', 'super_img.txt'&'super_msk.txt' in my case.
+For 3: I used coco datasets and some images crawled from internet.
+
+* When having those above two types of data, then generate training file lists containing the path of training images, such as 'DIM_list.txt', 'super_img.txt'&'super_msk.txt' in my case.
 
 # Implementation details
 The training model is completely implemented as described as in the paper, details are as follows:
