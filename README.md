@@ -20,7 +20,7 @@ For 2: I used Supervisely Human datasets which provides human involved images an
 
 For 3: I used coco datasets and some images crawled from internet.
 
-* When having those above two types of data, then generate training file lists containing the path of training images, such as 'DIM_list.txt', 'super_img.txt'&'super_msk.txt' in my case.
+When having those above three types of data, then generate lists of training files containing the full path of training images, such as 'DIM_list.txt', 'super_img.txt'&'super_msk.txt', 'bg_list.txt' in my case.
 
 # Implementation details
 The training model is completely implemented as described as in the paper, details are as follows:
