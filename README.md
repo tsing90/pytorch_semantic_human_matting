@@ -7,6 +7,8 @@ Ubuntu 16.04
 Pytorch 0.4.1
 
 # data preparation
+*_ code for data preapring will be updated _*
+
 For my code, there are two types of data:
 1. RGBA-png format: which means the image has no background (removed already)
 2. composited image + mask (alpha) image: the composited images have been composited by foreground and background already, and corresponding alpha matting images are also provided.
@@ -49,10 +51,9 @@ python train.py --patch_size=800 --nEpochs=500 --lr=1e-5 --save_epoch=10 --train
 optional: --continue_train
 
 -----------------------------------
-|       Improving & Debugging ... |   
------------------------------------
+*_       Improving & Debugging ... _*
 Trying to cropping tensors on the fly when traning ...
-
+-----------------------------------
 
 ## testing
 python test.py --train_phase=end_to_end
