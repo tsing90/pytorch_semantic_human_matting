@@ -48,6 +48,12 @@ python train.py --patch_size=800 --nEpochs=500 --lr=1e-5 --save_epoch=10 --train
 
 optional: --continue_train
 
+-----------------------------------
+|       Improving & Debugging ... |   
+-----------------------------------
+Trying to cropping tensors on the fly when traning ...
+
+
 ## testing
 python test.py --train_phase=end_to_end
 
