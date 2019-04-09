@@ -1,5 +1,3 @@
-
-
 import argparse
 import math
 import torch
@@ -17,12 +15,16 @@ import torch.nn.functional as F
 
 def get_args():
     # Training settings
-    parser = argparse.ArgumentParser(description='Fast portrait matting !')
+    parser = argparse.ArgumentParser(description='Semantic Human Matting !')
     parser.add_argument('--dataDir', default='./data/', help='dataset directory')
+    parser.add_argument('--fgLists', type=list, default=[], required=True, help="training fore-ground images lists")
+    parser.add_argument('--bg_list', type=str, required=True, help='train back-ground images list, one file')
+    parser.add_argument('--dataRatio', type=list, default=[], required=True, help="train bg:fg raio, eg. [100]")
     parser.add_argument('--saveDir', default='./ckpt', help='model save dir')
     parser.add_argument('--trainData', default='human_matting_data', help='train dataset name')
 
     parser.add_argument('--continue_train', action='store_true', default=False, help='continue training the training')
+    parser.add_argument('--pretrain', action='store_true', help='load pretrained model from t_net & m_net ')
     parser.add_argument('--without_gpu', action='store_true', default=False, help='no use gpu')
 
     parser.add_argument('--nThreads', type=int, default=4, help='number of threads for data loading')
@@ -84,8 +86,25 @@ def save_img(args, all_img, epoch, i=0):
                     img_cat.transpose((1, 2, 0)).astype(np.uint8))
 
     if args.train_phase == 'end_to_end':
-        # TODO: to be done
-        pass
+        img, trimap_gt, alpha_gt, trimap_pre, alpha_pre = all_img
+        img = img[0] * 255.0
+        trimap_pre = torch.argmax(trimap_pre[0], dim=0)
+        trimap_pre = torch.stack((trimap_pre.float(),)*3, dim=0) * 127.5
+        trimap_gt = torch.stack((trimap_gt[0][0],)*3, dim=0) * 127.5
+        alpha_pre = torch.stack((alpha_pre[0][0] * 255.0,) * 3, dim=0)
+        alpha_gt = torch.stack((alpha_gt[0][0] * 255.0,) * 3, dim=0)
+
+        img_cat = torch.cat((img, trimap_gt, trimap_pre, alpha_gt, alpha_pre), dim=-1)
+        #alpha_cat = torch.cat((alpha_gt, alpha_pre), dim=-1)
+        if args.without_gpu:
+            img_cat = img_cat.data.numpy()
+        else:
+            img_cat = img_cat.cpu().data.numpy()
+
+        img_cat = img_cat.transpose((1,2,0)).astype(np.uint8)
+
+        # save image
+        cv2.imwrite(img_dir + '/e2e_{}_{}.png'.format(str(epoch), str(i)),img_cat)
 
 def set_lr(args, epoch, optimizer):
 
@@ -127,14 +146,6 @@ class Train_Log():
             self.logFile = open(self.save_dir + '/log.txt', 'w')
             
     def save_model(self, model, epoch, save_as=False):
-
-        # epoch_out_path = "{}/ckpt_e{}.pth".format(self.save_dir_model, epoch)
-        # print("Checkpoint saved to {}".format(epoch_out_path))
-
-        # torch.save({
-        #     'epoch': epoch,
-        #     'state_dict': model.state_dict(),
-        # }, epoch_out_path)
         if save_as:   # for args.save_epoch
             lastest_out_path = "{}/ckpt_{}.pth".format(self.save_dir_model, epoch)
             model_out_path = "{}/model_obj.pth".format(self.save_dir_model)
@@ -149,9 +160,16 @@ class Train_Log():
             'state_dict': model.state_dict(),
             }, lastest_out_path)
 
+    def load_pretrain(self, model):
+        t_ckpt = torch.load(self.t_path)
+        model.load_state_dict(t_ckpt['state_dict'], strict=False)
+        m_ckpt = torch.load(self.m_path)
+        model.load_state_dict(m_ckpt['state_dict'], strict=False)
+        print('=> loaded pretrained t_net & m_net pretrained models !')
+
+        return model
 
     def load_model(self, model):
-
         lastest_out_path = "{}/ckpt_lastest.pth".format(self.save_dir_model)
         ckpt = torch.load(lastest_out_path)
         start_epoch = ckpt['epoch'] + 1
@@ -186,16 +204,12 @@ def loss_f_M(img, alpha_pre, alpha_gt, bg, fg, trimap):
     # ------------------------
     eps = 1e-6
     # l_alpha
-    mask_size = trimap[:,1,:,:].sum()
-    L_alpha = L_alpha = torch.sqrt(torch.pow(alpha_pre - alpha_gt, 2.) + eps).mean()
+    L_alpha = torch.sqrt(torch.pow(alpha_pre - alpha_gt, 2.) + eps).mean()
 
-    # L_composition
-    #fg = torch.cat((alpha_gt, alpha_gt, alpha_gt), 1) * img
-    #fg_pre = torch.cat((alpha_pre, alpha_pre, alpha_pre), 1) * img
     comp_pred = alpha_pre * fg + (1 - alpha_pre) * bg
 
     # be careful about here: if img's range is [0,1] then eps should divede 255
-    L_composition = L_composition = torch.sqrt(torch.pow(img - comp_pred, 2.) + eps).mean()
+    L_composition = torch.sqrt(torch.pow(img - comp_pred, 2.) + eps).mean()
 
     L_p = 0.5 * L_alpha + 0.5 * L_composition
 
@@ -214,17 +228,12 @@ def loss_function(img, trimap_pre, trimap_gt, alpha_pre, alpha_gt, bg, fg):
     # ------------------------
     eps = 1e-6
     # l_alpha
-    mask_size = trimap[:,1,:,:].sum()
-    L_alpha = L_alpha = torch.sqrt(torch.pow(alpha_pre - alpha_gt, 2.) + eps).mean()
+    L_alpha = torch.sqrt(torch.pow(alpha_pre - alpha_gt, 2.) + eps).mean()
 
-    # L_composition
-    #fg = torch.cat((alpha_gt, alpha_gt, alpha_gt), 1) * img
-    #fg_pre = torch.cat((alpha_pre, alpha_pre, alpha_pre), 1) * img
     comp_pred = alpha_pre * fg + (1 - alpha_pre) * bg
 
     # be careful about here: if img's range is [0,1] then eps should divede 255
-    L_composition = L_composition = torch.sqrt(torch.pow(img - comp_pred, 2.) + eps).mean()
-
+    L_composition = torch.sqrt(torch.pow(img - comp_pred, 2.) + eps).mean()
     L_p = 0.5 * L_alpha + 0.5 * L_composition
 
     # train_phase
@@ -253,9 +262,11 @@ def main():
         model.apply(weight_init)
     elif args.train_phase == 'end_to_end':
         model = network.net_F()
+        if args.pretrain:
+            model = Train_Log.load_pretrain(model)
     else:
         raise ValueError('Wrong train phase request!')
-    train_data = dataset.human_matting_data(args.dataDir, args.train_phase, args.patch_size)
+    train_data = dataset.human_matting_data(args)
     model.to(device)
 
     # debug setting

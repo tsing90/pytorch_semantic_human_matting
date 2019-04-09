@@ -26,11 +26,8 @@ if args.without_gpu:
 else:
     if torch.cuda.is_available():
         n_gpu = torch.cuda.device_count()
-        print("----------------------------------------------------------")
-        print("|       use GPU !      ||   Available GPU number is {} !  |".format(n_gpu))
-        print("----------------------------------------------------------")
-
-        device = torch.device('cuda:0,1')
+        print("use GPU")
+        device = torch.device('cuda')
 
 #################################
 #---------------
@@ -49,14 +46,14 @@ def load_model(args):
     
     return myModel
 
-def seg_process(args, inputs, net, trimap=None):
+def seg_process(args, inputs, net):
 
     if args.train_phase == 'pre_train_t_net':
-        #origin_w, origin_h, _ = inputs.shape
         trimap = net(inputs)
         trimap = torch.argmax(trimap[0], dim=0)
-        trimap = trimap * 127.5
-        # print((time.time() - t0))
+        trimap[trimap == 0] = 0
+        trimap[trimap == 1] = 128
+        trimap[trimap == 2] = 255
 
         if args.without_gpu:
             trimap_np = trimap.data.numpy()
@@ -64,12 +61,9 @@ def seg_process(args, inputs, net, trimap=None):
             trimap_np = trimap.cpu().data.numpy()
 
         trimap_np = trimap_np.astype(np.uint8)
-        #trimap_out = cv2.resize(trimap_np, (origin_w, origin_h), interpolation=cv2.INTER_CUBIC)
-
         return trimap_np
 
     elif args.train_phase == 'pre_train_m_net':
-        assert isinstance(trimap, np.ndarray), 'trimap is None !'
         alpha = net(inputs[0], inputs[1])
 
         if args.without_gpu:
@@ -78,35 +72,21 @@ def seg_process(args, inputs, net, trimap=None):
             alpha = alpha.cpu().data.numpy()
 
         alpha = alpha[0][0] * 255.0
-        alpha[trimap==255] = 255
-        alpha[trimap== 0 ] = 0
         alpha = alpha.astype(np.uint8)
 
         return alpha
 
     else:
-        # TODO: to be implemented
-        pass
-        """
-        fg = np.multiply(alpha_np[..., np.newaxis], image)
-        bg = image
-        bg_gray = np.multiply(1-alpha_np[..., np.newaxis], image)
-        bg_gray = cv2.cvtColor(bg_gray, cv2.COLOR_BGR2GRAY)
-    
-        bg[:,:,0] = bg_gray
-        bg[:,:,1] = bg_gray
-        bg[:,:,2] = bg_gray
-    
-        # fg[fg<=0] = 0
-        # fg[fg>255] = 255
-        # fg = fg.astype(np.uint8)
-        # out = cv2.addWeighted(fg, 0.7, bg, 0.3, 0)
-        out = fg + bg
-        out[out<0] = 0
-        out[out>255] = 255
-        out = out.astype(np.uint8)
-        """
+        alpha = net(inputs)
 
+        if args.without_gpu:
+            alpha = alpha.data.numpy()
+        else:
+            alpha = alpha.cpu().data.numpy()
+
+        alpha = alpha[0][0] * 255.0
+        alpha = alpha.astype(np.uint8)
+        return alpha
 
 def test(args, net):
 
@@ -154,8 +134,10 @@ def test(args, net):
             frame_seg = seg_process(args, (tensor_img, tensor_tri), net, trimap=trimap_src)
 
         else:
-            # TODO: end2end phase
-            pass
+            img = img / 255.0
+            tensor_img = torch.from_numpy(img.astype(np.float32)[np.newaxis, :, :, :]).permute(0, 3, 1, 2)
+            tensor_img = tensor_img.to(device)
+            frame_seg = seg_process(args, tensor_img, net)
 
         # show a frame
         cv2.imwrite(out_dir+imgname, frame_seg)

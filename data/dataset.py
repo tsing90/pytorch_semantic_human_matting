@@ -242,35 +242,34 @@ class human_matting_data(data.Dataset):
     """
     human_matting
     """
-    def __init__(self, root_dir, phase, patch_size):
+    def __init__(self, args):
         super().__init__()
-        self.data_root = root_dir
-        self.patch_size = patch_size
-        self.phase = phase
+        self.data_root = args.dataDir
+        self.patch_size = args.patch_size
+        self.phase = args.train_phase
+        self.dataRatio = args.dataRatio
 
-        if self.phase == 'pre_train_t_net':
-            lists = ['DIM_list.txt', 'super_img.txt', 'super_msk.txt', 'bg_list.txt']
-        elif self.phase == 'pre_train_m_net':
-            lists = ['ait_list.txt', 'DIM_m_list.txt', 'bg_list.txt']
-        else:
-            lists = ['ait_list.txt', 'DIM_list.txt', 'bg_list.txt']
-        paths = []
-        for file in lists:
-            path = os.path.join(self.data_root, file)
-            assert os.path.isfile(path), "missing file at ./data/{}".format(file)
-            with open(path, 'r') as f:
-                paths.append(f.readlines())
-        if self.phase == 'pre_train_t_net':
-            self.path_ait, self.path_dim, self.path_super_img, self.path_super_msk, self.path_bg = paths
-            self.num = len(self.path_bg) + len(self.path_super_img)
-        else:
-            self.path_ait, self.path_dim, self.path_bg = paths
-            self.num = len(self.path_bg)
+        self.fg_paths = []
+        for file in args.fgLists:
+            fg_path = os.path.join(self.data_root, file)
+            assert os.path.isfile(fg_path), "missing file at {}".format(fg_path)
+            with open(fg_path, 'r') as f:
+                self.fg_paths.append(f.readlines())
+
+        bg_path = os.path.join(self.data_root, args.bg_list)
+        assert os.path.isfile(bg_path), "missing bg file at: ".format(bg_path)
+        with open(bg_path, 'r') as f:
+            self.path_bg = f.readlines()
+
+        assert len(self.path_bg) == sum([self.dataRatio[i]*len(self.fg_paths[i]) for i in range(len(self.fg_paths))]), \
+            'the total num of bg is not equal to fg: bg-{}, fg-{}'\
+                .format(len(self.path_bg), [self.dataRatio[i]*len(self.fg_paths[i]) for i in range(len(self.fg_paths))])
+        self.num = len(self.path_bg)
 
         #self.shuffle_count = 0
         self.shuffle_data()
 
-        print("Dataset : file number %d"% self.num)
+        print("Dataset : total training images:{}".format(self.num))
 
     def __getitem__(self, index):
         # data structure returned :: dict {}
@@ -386,28 +385,15 @@ class human_matting_data(data.Dataset):
         # (.png_img, .bg, 'bg') or (.composite, .mask, 'msk) :: tuple
         self.names = []
 
-        bg_per_ait = 5
-        if self.phase == 'pre_train_m_net':
-            # in this phase, we added more imgs from DIM, double as previous amount
-            bg_per_dim = 50
-        else:
-            bg_per_dim = 100
-        assert len(self.path_bg) == len(self.path_ait)*bg_per_ait + len(self.path_dim)*bg_per_dim
-        if self.phase == 'pre_train_t_net':
-            assert len(self.path_super_img) == len(self.path_super_msk)
-
         random.shuffle(self.path_bg)
 
         count = 0
-        for path in self.path_ait:
-            for i in range(bg_per_ait):
-                self.names.append((path, self.path_bg[count], 'bg'))
-                count += 1
-        
-        for path in self.path_dim:
-            for i in range(bg_per_dim):
-                self.names.append((path, self.path_bg[count], 'bg'))
-                count += 1
+        for idx, path_list in enumerate(self.fg_paths):
+            bg_per_fg = self.dataRatio[idx]
+            for path in path_list:
+                for i in range(bg_per_fg):
+                    self.names.append((path, self.path_bg[count], 'bg'))  # 'bg' means we need to composite fg & bg
+                    count += 1
         
         assert count == len(self.path_bg)
 
@@ -417,12 +403,6 @@ class human_matting_data(data.Dataset):
                 f.write(name[0].strip()+'  ||  '+name[1].strip()+'\n')
         self.shuffle_count += 1
         """
-        if self.phase == 'pre_train_t_net':
-            for idx in range(len(self.path_super_img)):
-                assert os.path.splitext(os.path.basename(self.path_super_img[idx].strip()))[0] \
-                       == os.path.basename(self.path_super_msk[idx].strip())[:-4]
-                self.names.append((self.path_super_img[idx], self.path_super_msk[idx], 'msk'))
-           
 
     def __len__(self):
         return self.num

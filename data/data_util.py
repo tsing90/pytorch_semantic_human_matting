@@ -7,6 +7,15 @@ import random
 import numpy as np
 import math
 
+# for RGBA format image generation: inputs are the paths of normal image & alpha image (mask)
+def get_rgba(img_path, msk_path):
+    img = cv2.imread(img_path)
+    msk = cv2.imread(msk_path, 0)
+
+    image = cv2.cvtColor(img, cv2.COLOR_BGR2BGRA)
+    image[:,:,3] = msk
+    return image
+
 # for convenience, we make fake fg and bg image
 def fake_fg_bg(img,alpha):
     color_fg = [random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)]

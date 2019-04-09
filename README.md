@@ -7,22 +7,27 @@ Ubuntu 16.04
 Pytorch 0.4.1
 
 # data preparation
-*_ code for data preapring will be updated _*
 
-For my code, there are two types of data:
-1. RGBA-png format: which means the image has no background (removed already)
-2. composited image + mask (alpha) image: the composited images have been composited by foreground and background already, and corresponding alpha matting images are also provided.
-3. backround images: which can fetched from coco datasets or anywhere else (e.g. internet), and they will be used for randomly compositing new image on-the-fly with foreground images separated from 1 (RGBA-PNG images), as described in paper.
+To make our life easier, there are only two types of data:
+1. RGBA-png format: which means the image has no background (removed already), 
+you can generate such an image with the function 'get_rgba' from ./data/data_util.py.
+2. Backround images: which can fetched from coco datasets or anywhere else (e.g. internet), and they will be used for randomly compositing new images on-the-fly with foreground images separated from 1 (RGBA-PNG images), as described in paper.
 
 For example: 
 
-For 1: I used Adobe Deep Image Matting datasets; I composite alpha and foreground images togher to get my RGBA-png format images.
+For 1: I used Adobe Deep Image Matting datasets, etc.; I composite alpha and foreground images togher to get my RGBA-png format images.
 
-For 2: I used Supervisely Human datasets which provides human involved images and corresponding masks; due to its low quality (binary segmentation), I mainly used them to trian T-net only;
+For 2: I used coco datasets and some images crawled from internet.
 
-For 3: I used coco datasets and some images crawled from internet.
+When having those above two types of data, then generate lists of training files containing the full path of training images, 
+such as 'DIM_list.txt', 'bg_list.txt' in my case. Specifically, for flags:
 
-When having those above three types of data, then generate lists of training files containing the full path of training images, such as 'DIM_list.txt', 'super_img.txt'&'super_msk.txt', 'bg_list.txt' in my case.
+--fgLists: a list, contains list files in which all images share the same fg-bg ratio, e.g. ['DIM.txt','SHM.txt']
+
+--bg_list: a txt file, contains all bg images for composition needs, e.g. 'bg_list.txt'.
+
+--dataRatio: a list, contains bg-fb ratio for each list file in fgLists. For example, similar to the paper, 
+given [100, 1], we composite 100 images for each fore-ground image in 'DIM.txt' and 1 image for each fg in 'SHM.txt'
 
 # Implementation details
 The training model is completely implemented as described as in the paper, details are as follows:
@@ -36,28 +41,41 @@ The training model is completely implemented as described as in the paper, detai
 
 # How to run the code
 ## pre_trian T_net
-python train.py --patch_size=400 --nEpochs=500 --save_epoch=5 --train_batch=8 --train_phase=pre_train_t_net
+python train.py --patch_size=400  --train_phase=pre_train_t_net
 
 optional: --continue_train
 
 ## pre_train M_net
-python train.py --patch_size=400 --nEpochs=500 --save_epoch=1 --train_batch=8 --train_phase=pre_train_m_net
+python train.py --patch_size=320  --train_phase=pre_train_m_net
 
 optional: --continue_train
 
 ## end to end training
-python train.py --patch_size=800 --nEpochs=500 --lr=1e-5 --save_epoch=10 --train_batch=8 --continue_train --train_phase=end_to_end
+python train.py --patch_size=800 --pretrain --train_phase=end_to_end
 
 optional: --continue_train
 
------------------------------------
-*_       Improving & Debugging ... _*
-Trying to cropping tensors on the fly when traning ...
------------------------------------
+note: 
+1. the end to end train process is really time-consuming.
+2. I tried to implement the crop-on-the-fly trick for m-net inputs as described in the original paper, 
+but the training process seemed to be very slow and not stable. So the same input size is used for both
+nets through the end to end training.
 
 ## testing
-python test.py --train_phase=end_to_end
+python test.py --train_phase=pre_train_t_net/pre_train_m_net/end_to_end
 
 # Results
-** will be released soon ... **
--------------------------------
+Note: the following result is produced by T-net & M-net together, as I haven't complete end to end phase training yet.
+
+![Original image](https://github.com/tsing90/pytorch_semantic_human_matting/tree/master/data/0000.jpg)
+
+![Output image](https://github.com/tsing90/pytorch_semantic_human_matting/tree/master/data/0000-AIT.png)
+
+# Observations
+1. The performance of T-net is essential for the whole process
+2. Training trimap data (generated from alpha image) is essential for T-net training, which means the trimap should
+ be in high-quality (actually alpha should have high-quality) and clear enough
+3. The end to end training is rather slow, and may be not stable, especially when T-net is not robust 
+(not powerful and stable). So I haven't trained end to end phase well. Even though, the result seemed satisfying.
+
+Leave your comments if you have any other observations and suggestions.
