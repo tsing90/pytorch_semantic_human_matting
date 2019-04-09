@@ -67,9 +67,13 @@ python test.py --train_phase=pre_train_t_net/pre_train_m_net/end_to_end
 # Results
 Note: the following result is produced by T-net & M-net together, as I haven't complete end to end phase training yet.
 
-![Original image](https://github.com/tsing90/pytorch_semantic_human_matting/tree/master/data/0000.jpg)
+Original image from the Internet:
 
-![Output image](https://github.com/tsing90/pytorch_semantic_human_matting/tree/master/data/0000-AIT.png)
+<img src="https://raw.githubusercontent.com/tsing90/pytorch_semantic_human_matting/master/data/0000.jpg" width=100% />
+
+Output image produced by the SHM:
+
+<img src='https://raw.githubusercontent.com/tsing90/pytorch_semantic_human_matting/master/data/0000-AIT.png' width=100%)
 
 # Observations
 1. The performance of T-net is essential for the whole process
