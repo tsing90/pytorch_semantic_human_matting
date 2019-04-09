@@ -73,7 +73,7 @@ Original image from the Internet:
 
 Output image produced by the SHM:
 
-<img src='https://raw.githubusercontent.com/tsing90/pytorch_semantic_human_matting/master/data/0000-AIT.png' width=100%)
+<img src='https://raw.githubusercontent.com/tsing90/pytorch_semantic_human_matting/master/data/0000-AIT.png' width=100%>
 
 # Observations
 1. The performance of T-net is essential for the whole process
