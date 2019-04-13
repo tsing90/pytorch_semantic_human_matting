@@ -144,6 +144,14 @@ class Train_Log():
             self.logFile = open(self.save_dir + '/log.txt', 'a')
         else:
             self.logFile = open(self.save_dir + '/log.txt', 'w')
+
+        # in case pretrained weights need to be loaded
+        if self.args.pretrain:
+            self.t_path = os.path.join(args.saveDir, 'pre_train_t_net', 'model', 'ckpt_lastest.pth')
+            self.m_path = os.path.join(args.saveDir, 'pre_train_m_net', 'model', 'ckpt_lastest.pth')
+            assert os.path.isfile(self.t_path) and os.path.isfile(self.m_path), \
+                'Wrong dir for pretrained models:\n{},{}'.format(self.t_path, self.m_path)
+
             
     def save_model(self, model, epoch, save_as=False):
         if save_as:   # for args.save_epoch
