@@ -80,6 +80,6 @@ Output image produced by the SHM:
 2. Training trimap data (generated from alpha image) is essential for T-net training, which means the trimap should
  be in high-quality (actually alpha should have high-quality) and clear enough
 3. The end to end training is rather slow, and may be not stable, especially when T-net is not robust 
-(not powerful and stable). So I haven't trained end to end phase well. Even though, the result seemed satisfying.
+(not powerful and stable). So I haven't complted the end to end phase training. Even though, the result seemed satisfying.
 
 Leave your comments if you have any other observations and suggestions.
